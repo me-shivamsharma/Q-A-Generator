@@ -1,0 +1,89 @@
+# Docker Compose override for development
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  # Development overrides for Q&A Generator
+  qa-generator:
+    build:
+      context: ./qa-generator
+      dockerfile: Dockerfile
+      target: builder
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://qa_user:qa_password_2024@postgres:5432/qa_generator
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev-jwt-secret-key-2024
+      - NEXTAUTH_SECRET=dev-nextauth-secret-key-2024
+      - NEXTAUTH_URL=http://localhost:9000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      # Mount source code for hot reload
+      - ./qa-generator/src:/app/src:ro
+      - ./qa-generator/public:/app/public:ro
+      - ./qa-generator/package.json:/app/package.json:ro
+      - ./qa-generator/next.config.ts:/app/next.config.ts:ro
+      - ./qa-generator/tailwind.config.ts:/app/tailwind.config.ts:ro
+      - ./qa-generator/tsconfig.json:/app/tsconfig.json:ro
+      # Uploads directory
+      - ./qa-generator/uploads:/app/uploads
+    command: npm run dev
+    ports:
+      - "9000:9000"  # Development port
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Development database with exposed port
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: qa_generator_dev
+      POSTGRES_USER: qa_user
+      POSTGRES_PASSWORD: qa_password_dev_2024
+
+  # Development Redis with exposed port
+  redis:
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+
+# Additional development services
+  # Database admin interface (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: qa-generator-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@qa-generator.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - qa-network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # Redis admin interface (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: qa-generator-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - qa-network
+
+volumes:
+  pgadmin_data:
+    driver: local

@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Ensure input text is always visible and copy-paste works */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+  pointer-events: auto !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+}
+
+/* Ensure all text content is selectable */
+* {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+/* Override for buttons and interactive elements */
+button,
+.cursor-pointer,
+[role="button"] {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+input[type="text"]::placeholder,
+input[type="number"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important;
+}
+
+/* Ensure proper contrast for form elements */
+.form-input {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+}
+
+/* Set default font to Arial */
+body, input, textarea, select, button {
+  font-family: Arial, sans-serif !important;
+}
+
+/* Font sizes */
+.font-size-11 {
+  font-size: 11px !important;
+}
+
+.font-size-14 {
+  font-size: 14px !important;
+}

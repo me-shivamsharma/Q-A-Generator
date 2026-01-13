@@ -1,0 +1,87 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: qa-generator-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qa_generator
+      POSTGRES_USER: qa_user
+      POSTGRES_PASSWORD: qa_password_2024
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./qa-generator/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - qa-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qa_user -d qa_generator"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: qa-generator-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - qa-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # Q&A Generator Application
+  qa-generator:
+    build:
+      context: ./qa-generator
+      dockerfile: Dockerfile.compose
+    container_name: qa-generator-app
+    restart: unless-stopped
+    ports:
+      - "9000:8080"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://qa_user:qa_password_2024@postgres:5432/qa_generator
+      - DATABASE_SSL=false
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-for-docker-compose-2024
+      - NEXTAUTH_SECRET=your-nextauth-secret-key-for-docker-compose-2024
+      - NEXTAUTH_URL=http://localhost:9000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PORT=8080
+      - HOSTNAME=0.0.0.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - qa-network
+    volumes:
+      - ./qa-generator/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  qa-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
